@@ -2,7 +2,6 @@ package models
 
 import (
 	"akiba/utils/token"
-	"fmt"
 	"html"
 	"strings"
 	"github.com/jinzhu/gorm"
@@ -19,7 +18,6 @@ func (u *User) SaveUser() (*User, error) {
 
 	err := DB.Create(u).Error
 	if err != nil {
-		fmt.Println("------------error------", err)
 		return &User{}, err
 	}
 	return u, nil

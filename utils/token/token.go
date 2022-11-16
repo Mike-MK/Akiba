@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
@@ -26,11 +27,23 @@ func GenerateToken(user_id uint) (string, error) {
 
 }
 
-func ExtractToken(c *gin.Context) string {
-	token := c.Query("token")
-	if token != "" {
-		return token
+func TokenValid(c *gin.Context) error {
+	tokenString := ExtractToken(c)
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {	
+		return []byte(os.Getenv("API_SECRET")), nil
+	})
+
+	if err != nil {
+		return err
 	}
+	if token.Valid {
+		fmt.Println("Token is valid")
+	} 
+	return nil
+}
+
+
+func ExtractToken(c *gin.Context) string {
 	bearerToken := c.Request.Header.Get("Authorization")
 	if len(strings.Split(bearerToken, " ")) == 2 {
 		return strings.Split(bearerToken, " ")[1]
