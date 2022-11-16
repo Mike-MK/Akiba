@@ -1,10 +1,10 @@
 package models
 
 import (
+	"akiba/utils/token"
 	"fmt"
 	"html"
 	"strings"
-
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -15,20 +15,20 @@ type User struct {
 	Password string `gorm:"size:255;not null" json:"password"`
 }
 
-func (u *User) SaveUser()(*User,error){
-	
+func (u *User) SaveUser() (*User, error) {
+
 	err := DB.Create(u).Error
-	if err != nil{
-		fmt.Println("------------error------",err)
-		return &User{},err
+	if err != nil {
+		fmt.Println("------------error------", err)
+		return &User{}, err
 	}
-	return u,nil
+	return u, nil
 }
 
-func (u *User)BeforeSave() error{
+func (u *User) BeforeSave() error {
 	// hash password
-	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password),bcrypt.DefaultCost)
-	if err != nil{
+	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	if err != nil {
 		return err
 	}
 	u.Password = string(hashed)
@@ -36,4 +36,30 @@ func (u *User)BeforeSave() error{
 	// trim username
 	u.Username = html.EscapeString(strings.TrimSpace(u.Username))
 	return nil
+}
+
+func VerifyPassword(password, hashedPassword string) error {
+	return bcrypt.CompareHashAndPassword([]byte(password), []byte(hashedPassword))
+}
+
+func LoginCheck(username, password string) (string, error) {
+	u := User{}
+	// fetch user with username and password
+	err := DB.Model(User{}).Where("username = ?", username).Take(&u).Error
+	if err != nil {
+		return "", err
+	}
+
+	err = VerifyPassword(password, u.Password)
+
+	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
+		return "", err
+	}
+
+	token, err := token.GenerateToken(u.ID)
+
+	if err != nil {
+		return "", err
+	}
+	return token,nil
 }
