@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"akiba/models"
+	"akiba/utils/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,8 @@ type LoginInput struct{
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
+
+
 
 
 func Register(c *gin.Context) {
@@ -63,6 +66,24 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token":token})
 }
 
-func CreateAccount(c *gin.Context){
-	c.JSON(http.StatusOK,gin.H{"message":"Authorized to view"})
+
+func CurrentUser(c *gin.Context){
+
+	user_id, err := token.ExtractTokenID(c)
+	
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	
+	u,err := models.GetUserByID(user_id)
+	
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message":"success","data":u})
 }
+
+

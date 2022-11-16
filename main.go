@@ -20,7 +20,7 @@ func main() {
 	
 	protected := r.Group("/api/account")
 	protected.Use(middleware.JWTMiddleware())
-	protected.GET("/user",controllers.CreateAccount)
+	protected.POST("/new",controllers.CreateAccount)
 
 
 	r.Run("localhost:8080")
