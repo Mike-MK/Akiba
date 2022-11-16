@@ -1,13 +1,19 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"akiba/controllers"
+	"akiba/models"
 	"fmt"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	models.ConnectToDatabase()
 	r := gin.Default()
 
-	r.Run(":8080")
+	public := r.Group("/api")
+	public.POST("/register", controllers.Register)
+	r.Run("localhost:8080")
 	fmt.Println("hello")
 }
