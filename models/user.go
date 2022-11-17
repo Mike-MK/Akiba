@@ -2,8 +2,10 @@ package models
 
 import (
 	"akiba/utils/token"
+	"errors"
 	"html"
 	"strings"
+
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -60,4 +62,18 @@ func LoginCheck(username, password string) (string, error) {
 		return "", err
 	}
 	return token,nil
+}
+
+func GetUserByID(uid uint) (User,error) {
+
+	var u User
+
+	if err := DB.First(&u,uid).Error; err != nil {
+		return u, errors.New("User not found!")
+	}
+
+	u.Password = ""
+	
+	return u,nil
+
 }
