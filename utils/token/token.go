@@ -38,8 +38,10 @@ func TokenValid(c *gin.Context) error {
 	}
 	if token.Valid {
 		fmt.Println("Token is valid")
+		return nil
 	} 
 	return nil
+	
 }
 
 
