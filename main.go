@@ -21,6 +21,7 @@ func main() {
 	protected := r.Group("/api/account")
 	protected.Use(middleware.JWTMiddleware())
 	protected.POST("/new",controllers.CreateAccount)
+	protected.POST("/deposit",controllers.Deposit)
 
 
 	r.Run("localhost:8080")
