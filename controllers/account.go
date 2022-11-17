@@ -15,6 +15,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 )
+type DepositInput struct {
+	Amount int `json:"amount" binding:"required"`
+}
 
 type AccountInput struct{
 	Number string `json:"number" binding:"required"`
@@ -35,6 +38,7 @@ type MpesaRequestBody struct{
 }
 
 func CreateAccount(c *gin.Context){
+	// parse input to struct
 	var input AccountInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
@@ -44,19 +48,21 @@ func CreateAccount(c *gin.Context){
 	a := models.Account{}
 	a.Number = input.Number
 	
-	
+	// get user_id
 	user_id, err := token.ExtractTokenID(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// get user
 	u,err := models.GetUserByID(user_id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// save account with user fk
 	a.User = u
 	_,err = a.SaveAccount()
 
@@ -68,8 +74,16 @@ func CreateAccount(c *gin.Context){
 }
 
 func Deposit(c *gin.Context){
+	// get amount and validate
+	var depositInput DepositInput
+	if err := c.ShouldBindJSON(&depositInput); err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	amount := depositInput.Amount 
+
+	// get mpesa auth token
 	authToken,err := mpesa.GetMpesaAuthToken();
-	fmt.Println("token",authToken)
 
 	if  err != nil {
 		c.JSON(http.StatusInternalServerError,gin.H{"message":"Error getting auth token"})
@@ -79,26 +93,14 @@ func Deposit(c *gin.Context){
 
 	// stk push request body
 	timestamp := time.Now().Format("20060102150405")
-	fmt.Println(timestamp)
 	code := 174379
 	key := "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
 	phone := 254716537782
 	pwd := fmt.Sprint(code)+key+timestamp
-	amount := 1
+	// amount = 1 //For testing
 
 	b64Pwd := b64.StdEncoding.EncodeToString([]byte(pwd))
-	// data := make(map[string]string,11)
-	// data["BusinessShortCode"] = code
-	// data["Password"] = b64Pwd
-	// data["Timestamp"] = timestamp
-	// data["TransactionType"] = "CustomerPayBillOnline"
-	// data["Amount"] = amount
-	// data["PartyA"] = phone
-	// data["PartyB"] = code
-	// data["PhoneNumber"] = phone
-	// data["CallBackURL"] = "https://c2d5-102-140-246-229.ngrok.io/wallet/result/"
-	// data["AccountReference"] = phone
-	// data["TransactionDesc"] = "Akiba Pay"
+	
 
 	var input MpesaRequestBody
 	input.AccountReference = fmt.Sprint(code)
@@ -113,13 +115,13 @@ func Deposit(c *gin.Context){
 	input.TransactionDesc = "Akiba Pay"
 	input.TransactionType = "CustomerPayBillOnline"
 
+	// input struct to json
 	jsonBody,err := json.Marshal(input)
 	if err != nil{
 		fmt.Println(err)
 	}
 
 	bodyReader := bytes.NewReader(jsonBody)
-	fmt.Println(bodyReader)
 
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
@@ -131,7 +133,7 @@ func Deposit(c *gin.Context){
 	req.Header.Add("Authorization", authHeader)
 	req.Header.Add("Content-Type", "application/json")
 	
-
+	// stk push request
 	resp, err := client.Do(req)
 	if err != nil {
 		return 
@@ -144,5 +146,5 @@ func Deposit(c *gin.Context){
 
 	defer resp.Body.Close()
 	
-	c.JSON(http.StatusOK,gin.H{"message":"Ok"})
+	c.JSON(http.StatusOK,respBody)
 }
